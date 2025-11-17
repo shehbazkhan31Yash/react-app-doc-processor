@@ -6,8 +6,7 @@ import { MdPerson, MdMail, MdLock } from 'react-icons/md';
 import { FaGoogle, FaTwitter, FaGithub } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-
+// TODO: Implement OAuth login for Google, Facebook, and GitHub.
 
 export default function Register() {
   const dispatch = useAppDispatch();
@@ -193,7 +192,7 @@ export default function Register() {
               
             </div>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               {registerMessage && (
                 <div className="p-3 rounded-lg bg-emerald-900/80 text-emerald-100 mb-3 transition-opacity duration-300">
                   {registerMessage}
@@ -204,7 +203,7 @@ export default function Register() {
                   {String(error)}
                 </div>
               )}
-            </div>
+            </div> */}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

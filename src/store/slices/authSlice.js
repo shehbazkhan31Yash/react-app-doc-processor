@@ -1,21 +1,22 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../api/axios';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import api from "../../api/axios";
+import { encryptData, decryptData } from "../../utils/cryptoUtils";
 
-// Register: get CSRF token first (server sets csurf cookie), then POST register with header
+const SECRET_KEY = import.meta.env.VITE_SECRET_KEY;
+
+// Register: get CSRF token first, then POST register with header
 export const registerUser = createAsyncThunk(
-  'auth/register',
+  "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
-      const csrfRes = await api.get('/api/csrf-token');
+      const csrfRes = await api.get("/api/csrf-token");
       const csrfToken = csrfRes.data && csrfRes.data.csrfToken;
 
       const config = {
-        headers: {
-          'csrf-token': csrfToken || '',
-        },
+        headers: { "csrf-token": csrfToken || "" },
       };
 
-      const res = await api.post('/api/users/register', userData, config);
+      const res = await api.post("/api/users/register", userData, config);
       return res.data;
     } catch (err) {
       if (err.response && err.response.data) {
@@ -28,15 +29,27 @@ export const registerUser = createAsyncThunk(
 
 // Login: posts creds, backend returns { token, user }
 export const loginUser = createAsyncThunk(
-  'auth/login',
+  "auth/login",
   async (credentials, { rejectWithValue }) => {
     try {
-      const res = await api.post('/api/users/login', credentials);
+      const res = await api.post("/api/users/login", credentials);
       const { token, user } = res.data;
 
-      if (token) {
-        localStorage.setItem('token', token);
+      // Persist encrypted token and user safely
+      try {
+        if (token) {
+          localStorage.setItem("token", encryptData(token));
+        }
+        if (user) {
+          // store user as JSON string encrypted
+          localStorage.setItem("user", encryptData(JSON.stringify(user)));
+        }
+      } catch  {
+        // storage could fail (quota, private mode) — don't break login flow
+        // keep flow silent in production; optionally log in dev
+        // console.warn('Failed to persist auth to localStorage', storageErr);
       }
+
       return { token, user };
     } catch (err) {
       if (err.response && err.response.data) {
@@ -47,23 +60,65 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+const safeReadEncrypted = (key) => {
+  try {
+    const encrypted = localStorage.getItem(key);
+    if (!encrypted) return null;
+    const dec = decryptData(encrypted, SECRET_KEY);
+
+    if (dec === null || dec === undefined) return null;
+
+    // if decryptData already returned an object, return it
+    if (typeof dec === "object") return dec;
+
+    // if decryptData returned a string, it may be a JSON string; try to parse, otherwise return string
+    if (typeof dec === "string") {
+      try {
+        return JSON.parse(dec);
+      } catch {
+        return dec;
+      }
+    }
+
+    return dec;
+  } catch  {
+    return null;
+  }
+};
+
+const tokenFromStorage = (() => {
+  const v = safeReadEncrypted("token");
+  return typeof v === "string" ? v : null;
+})();
+
+const userFromStorage = (() => {
+  const v = safeReadEncrypted("user");
+  if (!v) return null;
+  return typeof v === "object" ? v : v;
+})();
+
 const initialState = {
-  user: null,
-  token: localStorage.getItem('token') || null,
+  user: userFromStorage,
+  token: tokenFromStorage,
   loading: false,
   error: null,
   registerMessage: null,
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     logout(state) {
       state.user = null;
       state.token = null;
       state.error = null;
-      localStorage.removeItem('token');
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user"); 
+      } catch {
+        // ignore storage errors
+      }
     },
     clearError(state) {
       state.error = null;
@@ -73,6 +128,14 @@ const authSlice = createSlice({
     },
     setUser(state, action) {
       state.user = action.payload;
+      try {
+        localStorage.setItem(
+          "user",
+          encryptData(JSON.stringify(action.payload))
+        );
+      } catch {
+        // ignore storage errors
+      }
     },
   },
   extraReducers: (builder) => {
@@ -84,7 +147,7 @@ const authSlice = createSlice({
     });
     builder.addCase(registerUser.fulfilled, (state, action) => {
       state.loading = false;
-      state.registerMessage = action.payload.message || 'Registered';
+      state.registerMessage = action.payload.message || "Registered";
     });
     builder.addCase(registerUser.rejected, (state, action) => {
       state.loading = false;
@@ -108,5 +171,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, clearRegisterMessage, setUser } = authSlice.actions;
+export const { logout, clearError, clearRegisterMessage, setUser } =
+  authSlice.actions;
 export default authSlice.reducer;
