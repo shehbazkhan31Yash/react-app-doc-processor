@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 import { encryptData, decryptData } from "../../utils/cryptoUtils";
 
+
 const SECRET_KEY = import.meta.env.VITE_SECRET_KEY;
 
 // Register: get CSRF token first, then POST register with header
@@ -120,12 +121,15 @@ const authSlice = createSlice({
         // ignore storage errors
       }
     },
+
     clearError(state) {
       state.error = null;
     },
+
     clearRegisterMessage(state) {
       state.registerMessage = null;
     },
+
     setUser(state, action) {
       state.user = action.payload;
       try {
@@ -138,6 +142,7 @@ const authSlice = createSlice({
       }
     },
   },
+
   extraReducers: (builder) => {
     // register
     builder.addCase(registerUser.pending, (state) => {
@@ -145,10 +150,14 @@ const authSlice = createSlice({
       state.error = null;
       state.registerMessage = null;
     });
+
     builder.addCase(registerUser.fulfilled, (state, action) => {
       state.loading = false;
+
       state.registerMessage = action.payload.message || "Registered";
+
     });
+
     builder.addCase(registerUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error.message;
@@ -159,11 +168,17 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     });
+
     builder.addCase(loginUser.fulfilled, (state, action) => {
       state.loading = false;
       state.token = action.payload.token;
-      state.user = action.payload.user;
+      // UPDATED: Ensure role is always set with fallback to 'user'
+      state.user = {
+        ...action.payload.user,
+        role: action.payload.user.role || 'user'
+      };
     });
+
     builder.addCase(loginUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error.message;
@@ -173,4 +188,5 @@ const authSlice = createSlice({
 
 export const { logout, clearError, clearRegisterMessage, setUser } =
   authSlice.actions;
+
 export default authSlice.reducer;
