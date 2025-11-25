@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { MdDescription } from 'react-icons/md';
+import Navbar from '../../components/Navbar';  
 
 export default function UserDashboard() {
   const { user } = useAppSelector((state) => state.auth);
@@ -10,6 +11,10 @@ export default function UserDashboard() {
 
   return (
     <>
+      
+      <Navbar />
+
+      
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-sky-900 p-6">
         
         <div className="pointer-events-none absolute inset-0 overflow-hidden">

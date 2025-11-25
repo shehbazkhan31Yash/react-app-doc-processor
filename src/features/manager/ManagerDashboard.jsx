@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { assignProjectToUser } from '../../store/slices/projectsSlice';
 import { MdAssignment, MdPeople, MdDescription } from 'react-icons/md';
+import Navbar from '../../components/Navbar';  
 
 export default function ManagerDashboard() {
   const dispatch = useAppDispatch();
@@ -25,25 +26,24 @@ export default function ManagerDashboard() {
 
   return (
     <>
-      {/* Same background as login page */}
+      
+      <Navbar />
+
+      
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-sky-900 p-6">
         
-        {/* Blurred background decorations */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -left-24 -top-24 w-96 h-96 rounded-full bg-gradient-to-tr from-violet-700/30 to-cyan-700/20 blur-3xl transform rotate-12" />
           <div className="absolute right-0 bottom-0 w-80 h-80 rounded-2xl bg-gradient-to-bl from-rose-800/20 to-yellow-700/10 blur-2xl" />
         </div>
 
-        {/* Main content container */}
         <div className="relative max-w-7xl mx-auto">
           
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-extrabold text-white tracking-tight">Manager Dashboard</h1>
             <p className="text-slate-300 mt-2">Assign projects and manage your team</p>
           </div>
 
-          {/* Assignment Section - Glass Card */}
           <div className="mb-8 bg-slate-900/60 border border-slate-800/60 rounded-3xl p-6 shadow-2xl backdrop-blur-md">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 flex items-center justify-center border border-violet-500/30">
@@ -53,7 +53,6 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="flex gap-4 flex-wrap">
-              {/* Project Select */}
               <select
                 value={selectedProject || ''}
                 onChange={(e) => setSelectedProject(e.target.value ? parseInt(e.target.value) : null)}
@@ -65,7 +64,6 @@ export default function ManagerDashboard() {
                 ))}
               </select>
 
-              {/* User Select */}
               <select
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
@@ -77,7 +75,6 @@ export default function ManagerDashboard() {
                 ))}
               </select>
 
-              {/* Assign Button */}
               <button
                 onClick={handleAssignProject}
                 disabled={!selectedProject || !selectedUser}
@@ -88,7 +85,6 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          {/* Projects Grid Section */}
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 flex items-center justify-center border border-cyan-500/30">
@@ -103,10 +99,9 @@ export default function ManagerDashboard() {
                   key={project.id} 
                   className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-6 shadow-xl backdrop-blur-md hover:shadow-2xl transition-all duration-300 hover:scale-105"
                 >
-                  <h3 className="font-bold text-xl mb-3 text-white">{project.name}</h3>
+                  <h3 className="font-bold text-xl mb-3 text-white text_center">{project.name}</h3>
                   <p className="text-slate-300 mb-4 text-sm leading-relaxed">{project.description}</p>
                   
-                  {/* View Doc Button */}
                   <a
                     href={project.documentURL}
                     target="_blank"
@@ -116,7 +111,6 @@ export default function ManagerDashboard() {
                     View Document
                   </a>
 
-                  {/* Assigned Users */}
                   <div className="flex items-start gap-2 pt-3 border-t border-slate-700/50">
                     <MdPeople className="w-5 h-5 text-slate-400 mt-0.5" />
                     <div>

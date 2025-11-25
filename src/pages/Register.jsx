@@ -6,7 +6,7 @@ import { MdPerson, MdMail, MdLock, MdVisibility, MdVisibilityOff } from 'react-i
 import { FaGoogle, FaTwitter, FaGithub } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-// TODO: Implement OAuth login for Google, Facebook, and GitHub.
+
 
 export default function Register() {
   const dispatch = useAppDispatch();
@@ -20,13 +20,13 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user', // ADDED: Default role is 'user'
+    role: 'user', 
   });
 
   const [errors, setErrors] = useState({});
 const [touched, setTouched] = useState({});
-const [showPassword, setShowPassword] = useState(false);  // ADD THIS
-const [showConfirmPassword, setShowConfirmPassword] = useState(false);  // ADD THIS
+const [showPassword, setShowPassword] = useState(false);  
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);  
 
 
   useEffect(() => {
@@ -49,10 +49,10 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);  // ADD T
     }
   }, [error]);
 
-  // Validation helpers
+ 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const userNameRegex = /^[A-Za-z][A-Za-z0-9_]*$/; // starts with a letter, then letters/digits/underscore
-  const nameRegex = /^[A-Za-z][A-Za-z'-]*$/; // starts with letter, allow hyphen/apostrophe
+  const userNameRegex = /^[A-Za-z][A-Za-z0-9_]*$/; 
+  const nameRegex = /^[A-Za-z][A-Za-z'-]*$/; 
 
   const validateField = (name, value) => {
     switch (name) {
@@ -84,7 +84,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);  // ADD T
         return '';
       default:
         return '';
-      case 'role':  // ADD THIS
+      case 'role':  
      if (!value) return 'Please select a role';
       return '';
         
@@ -142,7 +142,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);  // ADD T
       lastName: form.lastName.trim(),
       email: form.email.trim(),
       password: form.password,
-      role: form.role, // ADDED: Include role in payload
+      role: form.role, 
     };
 
     dispatch(registerUser(payload));
@@ -274,7 +274,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);  // ADD T
                   {errors.email && touched.email && <div className="text-rose-400 text-xs mt-1">{errors.email}</div>}
                 </label>
               </div>
-{/* Role Selection - ADDED */}
+
 <div>
   <label className="flex flex-col">
     <span className="text-xs text-slate-300 mb-2">Select Role</span>
