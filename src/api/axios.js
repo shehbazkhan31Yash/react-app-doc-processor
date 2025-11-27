@@ -29,7 +29,7 @@ api.interceptors.request.use(
           token = decrypted;
         }
         
-        console.log('🔓 Decrypted token:', token);
+        
         
         if (token && typeof token === 'string') {
           config.headers = config.headers || {};

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createProject, fetchProjects, fetchUsers } from '../../store/slices/projectsSlice';
 import { MdAdd, MdClose, MdDescription, MdPeople } from 'react-icons/md';
-import Navbar from '../../components/Navbar';
+
 
 export default function AdminDashboard() {
   const dispatch = useAppDispatch();
@@ -13,8 +13,6 @@ export default function AdminDashboard() {
     projectManager: '',
     members: [],
     startDate: '',
-
-    
     endDate: '',
     description: '',
     status: 'pending' 
@@ -54,8 +52,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <>
-      <Navbar />
+    
 
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-sky-900 p-6">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -243,6 +240,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </>
+    
   );
 }

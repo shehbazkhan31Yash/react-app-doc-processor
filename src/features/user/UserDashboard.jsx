@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { MdDescription } from 'react-icons/md';
-import Navbar from '../../components/Navbar';  
+
 
 export default function UserDashboard() {
   const { user } = useAppSelector((state) => state.auth);
@@ -10,9 +10,7 @@ export default function UserDashboard() {
   const userProjects = projects.filter(p => p.assignedTo.includes(user.id));
 
   return (
-    <>
-      
-      <Navbar />
+    
 
       
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-sky-900 p-6">
@@ -55,6 +53,6 @@ export default function UserDashboard() {
           )}
         </div>
       </div>
-    </>
+    
   );
 }
