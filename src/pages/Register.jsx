@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { registerUser, clearError, clearRegisterMessage } from '../store/slices/authSlice';
-import { MdPerson, MdMail, MdLock } from 'react-icons/md';
+import { MdPerson, MdMail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import { FaGoogle, FaTwitter, FaGithub } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-// TODO: Implement OAuth login for Google, Facebook, and GitHub.
+
 
 export default function Register() {
   const dispatch = useAppDispatch();
@@ -20,10 +20,14 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'user', 
   });
 
   const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
+const [touched, setTouched] = useState({});
+const [showPassword, setShowPassword] = useState(false);  
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);  
+
 
   useEffect(() => {
     return () => {
@@ -45,10 +49,10 @@ export default function Register() {
     }
   }, [error]);
 
-  // Validation helpers
+ 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const userNameRegex = /^[A-Za-z][A-Za-z0-9_]*$/; // starts with a letter, then letters/digits/underscore
-  const nameRegex = /^[A-Za-z][A-Za-z'-]*$/; // starts with letter, allow hyphen/apostrophe
+  const userNameRegex = /^[A-Za-z][A-Za-z0-9_]*$/; 
+  const nameRegex = /^[A-Za-z][A-Za-z'-]*$/; 
 
   const validateField = (name, value) => {
     switch (name) {
@@ -80,6 +84,10 @@ export default function Register() {
         return '';
       default:
         return '';
+      case 'role':  
+     if (!value) return 'Please select a role';
+      return '';
+        
     }
   };
 
@@ -134,6 +142,7 @@ export default function Register() {
       lastName: form.lastName.trim(),
       email: form.email.trim(),
       password: form.password,
+      role: form.role, 
     };
 
     dispatch(registerUser(payload));
@@ -266,43 +275,100 @@ export default function Register() {
                 </label>
               </div>
 
-              <div>
-                <label className="flex flex-col">
-                  <span className="text-xs text-slate-300 mb-1">Password</span>
-                  <input
-                    name="password"
-                    type="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    placeholder=" Create a password"
-                    className={`w-full pr-3 py-2 rounded-lg border ${errors.password && touched.password ? 'border-rose-500' : 'border-slate-700'} bg-slate-800/60 text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400`}
-                  />
-                  <div className="mt-2 h-2 rounded-full bg-slate-800/40 overflow-hidden">
-                    <div
-                      className={`${strengthColor} h-2`}
-                      style={{ width: `${(strength / 5) * 100}%`, transition: 'width 200ms' }}
-                    />
-                  </div>
-                  {errors.password && touched.password && <div className="text-rose-400 text-xs mt-1">{errors.password}</div>}
-                </label>
-              </div>
+<div>
+  <label className="flex flex-col">
+    <span className="text-xs text-slate-300 mb-2">Select Role</span>
+    <div className="flex gap-6">
+      <div className="flex items-center">
+        <input
+          type="radio"
+          id="role-user"
+          name="role"
+          value="user"
+          checked={form.role === 'user'}
+          onChange={handleChange}
+          className="w-4 h-4 text-cyan-400 bg-slate-800/60 border-slate-700 focus:ring-2 focus:ring-cyan-400 cursor-pointer"
+        />
+        <label htmlFor="role-user" className="ml-2 text-sm text-slate-300 cursor-pointer">
+          User
+        </label>
+      </div>
+      <div className="flex items-center">
+        <input
+          type="radio"
+          id="role-manager"
+          name="role"
+          value="manager"
+          checked={form.role === 'manager'}
+          onChange={handleChange}
+          className="w-4 h-4 text-cyan-400 bg-slate-800/60 border-slate-700 focus:ring-2 focus:ring-cyan-400 cursor-pointer"
+        />
+        <label htmlFor="role-manager" className="ml-2 text-sm text-slate-300 cursor-pointer">
+          Manager
+        </label>
+      </div>
+    </div>
+    {errors.role && touched.role && <div className="text-rose-400 text-xs mt-1">{errors.role}</div>}
+  </label>
+</div>
 
               <div>
-                <label className="flex flex-col">
-                  <span className="text-xs text-slate-300 mb-1">Confirm password</span>
-                  <input
-                    name="confirmPassword"
-                    type="password"
-                    value={form.confirmPassword}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    placeholder=" Confirm password"
-                    className={`w-full pr-3 py-2 rounded-lg border ${errors.confirmPassword && touched.confirmPassword ? 'border-rose-500' : 'border-slate-700'} bg-slate-800/60 text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400`}
-                  />
-                  {errors.confirmPassword && touched.confirmPassword && <div className="text-rose-400 text-xs mt-1">{errors.confirmPassword}</div>}
-                </label>
-              </div>
+  <label className="flex flex-col">
+    <span className="text-xs text-slate-300 mb-1">Password</span>
+    <div className="relative">
+      <input
+        name="password"
+        type={showPassword ? 'text' : 'password'}
+        value={form.password}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        placeholder=" Create a password"
+        className={`w-full pr-10 py-2 rounded-lg border ${errors.password && touched.password ? 'border-rose-500' : 'border-slate-700'} bg-slate-800/60 text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400`}
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition"
+      >
+        {showPassword ? <MdVisibilityOff size={20} /> : <MdVisibility size={20} />}
+      </button>
+    </div>
+    <div className="mt-2 h-2 rounded-full bg-slate-800/40 overflow-hidden">
+      <div
+        className={`${strengthColor} h-2`}
+        style={{ width: `${(strength / 5) * 100}%`, transition: 'width 200ms' }}
+      />
+    </div>
+    {errors.password && touched.password && <div className="text-rose-400 text-xs mt-1">{errors.password}</div>}
+  </label>
+</div>
+
+
+              <div>
+  <label className="flex flex-col">
+    <span className="text-xs text-slate-300 mb-1">Confirm password</span>
+    <div className="relative">
+      <input
+        name="confirmPassword"
+        type={showConfirmPassword ? 'text' : 'password'}
+        value={form.confirmPassword}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        placeholder=" Confirm password"
+        className={`w-full pr-10 py-2 rounded-lg border ${errors.confirmPassword && touched.confirmPassword ? 'border-rose-500' : 'border-slate-700'} bg-slate-800/60 text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400`}
+      />
+      <button
+        type="button"
+        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition"
+      >
+        {showConfirmPassword ? <MdVisibilityOff size={20} /> : <MdVisibility size={20} />}
+      </button>
+    </div>
+    {errors.confirmPassword && touched.confirmPassword && <div className="text-rose-400 text-xs mt-1">{errors.confirmPassword}</div>}
+  </label>
+</div>
+
 
               <div>
                 <button

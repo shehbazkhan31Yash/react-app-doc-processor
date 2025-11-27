@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { loginUser, clearError } from '../store/slices/authSlice';
-import api from '../api/axios';
 import { MdMail, MdLock } from 'react-icons/md';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -78,6 +77,7 @@ export default function Login() {
     setErrors((prev) => ({ ...prev, [name]: msg }));
   };
 
+  // This code Removed manual token handling - axios interceptor handles it
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateAll();
@@ -91,10 +91,6 @@ export default function Login() {
 
     const action = await dispatch(loginUser(form));
     if (loginUser.fulfilled.match(action)) {
-      const savedToken = localStorage.getItem('token');
-      if (savedToken) {
-        api.defaults.headers.common.Authorization = `Bearer ${savedToken}`;
-      }
       navigate('/dashboard');
     }
   };
@@ -180,4 +176,3 @@ export default function Login() {
     </>
   );
 }
-
