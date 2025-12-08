@@ -1,54 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createProject, fetchProjects, fetchUsers } from '../../store/slices/projectsSlice';
-import { MdAdd, MdClose, MdDescription, MdPeople } from 'react-icons/md';
+import { fetchProjects, deleteProject, updateProject } from '../../store/slices/projectsSlice';
+import { MdAdd, MdPeople, MdEdit, MdDelete, MdVisibility, MdClose } from 'react-icons/md';
 
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { projects, users, loading, error } = useAppSelector((state) => state.projects);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    projectManager: '',
-    members: [],
-    startDate: '',
-    endDate: '',
-    description: '',
-    status: 'pending' 
-  });
+  const { projects, loading, error } = useAppSelector((state) => state.projects);
+  
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
 
-  // Fetch projects and users on component mount
+  // Fetch projects on component mount
   useEffect(() => {
     dispatch(fetchProjects());
-    dispatch(fetchUsers());
   }, [dispatch]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleView = (project) => {
+    setSelectedProject(project);
+    setShowViewModal(true);
   };
 
-  const handleMembersChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-    setFormData(prev => ({ ...prev, members: selectedOptions }));
+  const handleEdit = (project) => {
+    setSelectedProject(project);
+    setEditFormData({
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      startDate: project.startDate?.split('T')[0],
+      endDate: project.endDate?.split('T')[0]
+    });
+    setShowEditModal(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (formData.name.trim() && formData.description.trim()) {
-      await dispatch(createProject(formData));
-      setFormData({
-        name: '',
-        projectManager: '',
-        members: [],
-        startDate: '',
-        endDate: '',
-        description: '',
-        status: 'pending'
-      });
-      setShowForm(false);
+  const handleDelete = (project) => {
+    setSelectedProject(project);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedProject) {
+      await dispatch(deleteProject(selectedProject._id));
+      setShowDeleteModal(false);
+      setSelectedProject(null);
     }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (selectedProject) {
+      await dispatch(updateProject({ id: selectedProject._id, projectData: editFormData }));
+      setShowEditModal(false);
+      setSelectedProject(null);
+    }
+  };
+
+  const closeModals = () => {
+    setShowViewModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setSelectedProject(null);
   };
 
   return (
@@ -74,138 +90,12 @@ export default function AdminDashboard() {
           
           <div className="mb-8">
             <button
-              onClick={() => setShowForm(prevShowForm => !prevShowForm)}
-
+              onClick={() => navigate('/admin/create-project')}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-violet-600 text-white font-semibold shadow-lg transform transition duration-300 hover:scale-105 active:scale-95"
             >
-              {showForm ? (
-                <>
-                  <MdClose className="w-5 h-5" />
-                  Cancel
-                </>
-              ) : (
-                <>
-                  <MdAdd className="w-5 h-5" />
-                  Create New Project
-                </>
-              )}
+              <MdAdd className="w-5 h-5" />
+              Create New Project
             </button>
-
-            {showForm && (
-              <div className="mt-6 bg-slate-900/60 border border-slate-800/60 rounded-3xl p-8 shadow-2xl backdrop-blur-md max-w-2xl">
-                <h3 className="text-2xl font-bold text-white mb-6">New Project Details</h3>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-2">Project Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="Enter project name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-2">Project Manager</label>
-                    <select
-                      name="projectManager"
-                      value={formData.projectManager}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
-                      required
-                    >
-                      <option value="">Select Manager</option>
-                      {users.filter(u => u.role === 'manager').map(user => (
-                        <option key={user._id} value={user._id}>{user.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-2">Team Members</label>
-                    <select
-                      name="members"
-                      multiple
-                      value={formData.members}
-                      onChange={handleMembersChange}
-                      className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
-                      style={{ minHeight: '100px' }}
-                    >
-                      {users.filter(u => u.role === 'user').map(user => (
-                        <option key={user._id} value={user._id}>{user.name}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-slate-400 mt-1">Hold Ctrl/Cmd to select multiple</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-2">Start Date</label>
-                      <input
-                        type="date"
-                        name="startDate"
-                        value={formData.startDate}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-2">End Date</label>
-                      <input
-                        type="date"
-                        name="endDate"
-                        value={formData.endDate}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-2">Project Description</label>
-                    <textarea
-                      name="description"
-                      placeholder="Enter project description"
-                      value={formData.description}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition resize-none"
-                      rows="4"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-2">Status</label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
-                      required
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="active">Active</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-violet-600 text-white font-semibold shadow-lg transform transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-60"
-                  >
-                    {loading ? 'Creating...' : 'Create Project'}
-                  </button>
-                </form>
-              </div>
-            )}
           </div>
 
           <div>
@@ -229,9 +119,34 @@ export default function AdminDashboard() {
                         Members: <span className="text-cyan-400 font-medium">{project.members?.length || 0}</span>
                       </span>
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-400 mb-4">
                       <p>Start: {new Date(project.startDate).toLocaleDateString()}</p>
                       <p>End: {new Date(project.endDate).toLocaleDateString()}</p>
+                      <p>Status: <span className="text-cyan-400 capitalize">{project.status}</span></p>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleView(project)}
+                        className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition flex items-center justify-center gap-1"
+                      >
+                        <MdVisibility className="w-4 h-4" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEdit(project)}
+                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition flex items-center justify-center gap-1"
+                      >
+                        <MdEdit className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(project)}
+                        className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition flex items-center justify-center gap-1"
+                      >
+                        <MdDelete className="w-4 h-4" />
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -239,6 +154,144 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* View Modal */}
+        {showViewModal && selectedProject && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-900 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-white">Project Details</h3>
+                <button onClick={closeModals} className="text-slate-400 hover:text-white">
+                  <MdClose className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-4 text-slate-300">
+                <div><strong>Name:</strong> {selectedProject.name}</div>
+                <div><strong>Description:</strong> {selectedProject.description}</div>
+                <div><strong>Status:</strong> <span className="capitalize text-cyan-400">{selectedProject.status}</span></div>
+                <div><strong>Start Date:</strong> {new Date(selectedProject.startDate).toLocaleDateString()}</div>
+                <div><strong>End Date:</strong> {new Date(selectedProject.endDate).toLocaleDateString()}</div>
+                <div><strong>Members:</strong> {selectedProject.members?.length || 0}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {showEditModal && selectedProject && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-900 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-white">Edit Project</h3>
+                <button onClick={closeModals} className="text-slate-400 hover:text-white">
+                  <MdClose className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={editFormData.name || ''}
+                    onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                    className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                  <textarea
+                    value={editFormData.description || ''}
+                    onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                    className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                    rows="3"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Status</label>
+                  <select
+                    value={editFormData.status || ''}
+                    onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                    className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                  >
+                    <option value="planning">Planning</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="on-hold">On Hold</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={editFormData.startDate || ''}
+                      onChange={(e) => setEditFormData({...editFormData, startDate: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
+                    <input
+                      type="date"
+                      value={editFormData.endDate || ''}
+                      onChange={(e) => setEditFormData({...editFormData, endDate: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+                  >
+                    {loading ? 'Updating...' : 'Update Project'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeModals}
+                    className="flex-1 px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Modal */}
+        {showDeleteModal && selectedProject && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-white">Delete Project</h3>
+                <button onClick={closeModals} className="text-slate-400 hover:text-white">
+                  <MdClose className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-slate-300 mb-6">
+                Are you sure you want to delete <strong>{selectedProject.name}</strong>? This action cannot be undone.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={confirmDelete}
+                  disabled={loading}
+                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+                >
+                  {loading ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                  onClick={closeModals}
+                  className="flex-1 px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     
   );

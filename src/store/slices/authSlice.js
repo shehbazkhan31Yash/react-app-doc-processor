@@ -10,14 +10,19 @@ export const registerUser = createAsyncThunk(
   "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
-      const csrfRes = await api.get("/api/csrf-token");
-      const csrfToken = csrfRes.data && csrfRes.data.csrfToken;
+      let csrfToken = null;
+      try {
+        const csrfRes = await api.get("/csrf-token");
+        csrfToken = csrfRes.data && csrfRes.data.csrfToken;
+      } catch (csrfError) {
+        console.warn('CSRF token fetch failed, proceeding without it');
+      }
 
-      const config = {
-        headers: { "csrf-token": csrfToken || "" },
-      };
+      const config = csrfToken ? {
+        headers: { "x-csrf-token": csrfToken },
+      } : {};
 
-      const res = await api.post("/api/users/register", userData, config);
+      const res = await api.post("/users/register", userData, config);
       return res.data;
     } catch (err) {
       if (err.response && err.response.data) {
@@ -33,7 +38,7 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async (credentials, { rejectWithValue }) => {
     try {
-      const res = await api.post("/api/users/login", credentials);
+      const res = await api.post("/users/login", credentials);
       const { token, user } = res.data;
 
       // Persist encrypted token and user safely

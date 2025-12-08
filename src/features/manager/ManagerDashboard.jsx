@@ -1,26 +1,36 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { assignProjectToUser } from '../../store/slices/projectsSlice';
+import { assignProjectToUser, fetchManagerProjects } from '../../store/slices/projectsSlice';
+import { fetchEmployees } from '../../store/slices/userSlice';
 import { MdAssignment, MdPeople, MdDescription } from 'react-icons/md';
 
 
 export default function ManagerDashboard() {
   const dispatch = useAppDispatch();
-  const { projects, users } = useAppSelector((state) => state.projects);
+  const { projects, loading, error } = useAppSelector((state) => state.projects);
+  const { employees } = useAppSelector((state) => state.users);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedUser, setSelectedUser] = useState('');
 
-  const userList = users.filter(u => u.role === 'user');
+  // Fetch manager's projects and employees on component mount
+  useEffect(() => {
+    dispatch(fetchManagerProjects());
+    dispatch(fetchEmployees());
+  }, [dispatch]);
 
-  const handleAssignProject = () => {
+  const userList = employees || [];
+
+  const handleAssignProject = async () => {
     if (selectedProject && selectedUser) {
-      dispatch(assignProjectToUser({
+      await dispatch(assignProjectToUser({
         projectId: selectedProject,
-        userId: parseInt(selectedUser)
+        userId: selectedUser
       }));
       setSelectedProject(null);
       setSelectedUser('');
+      // Refresh projects after assignment
+      dispatch(fetchManagerProjects());
     }
   };
 
@@ -50,12 +60,12 @@ export default function ManagerDashboard() {
             <div className="flex gap-4 flex-wrap">
               <select
                 value={selectedProject || ''}
-                onChange={(e) => setSelectedProject(e.target.value ? parseInt(e.target.value) : null)}
+                onChange={(e) => setSelectedProject(e.target.value || null)}
                 className="px-4 py-2 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-40 transition"
               >
                 <option value="">Select Project</option>
                 {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p._id} value={p._id}>{p.name}</option>
                 ))}
               </select>
 
@@ -66,7 +76,7 @@ export default function ManagerDashboard() {
               >
                 <option value="">Select User</option>
                 {userList.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
+                  <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
                 ))}
               </select>
 
@@ -88,36 +98,52 @@ export default function ManagerDashboard() {
               <h2 className="text-3xl font-bold text-white">All Projects</h2>
             </div>
 
+            {loading && <p className="text-slate-300">Loading projects...</p>}
+            {error && (
+              <div className="mb-4 p-4 bg-rose-500/20 border border-rose-500/30 rounded-xl text-rose-300">
+                {error}
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((project) => (
                 <div 
-                  key={project.id} 
+                  key={project._id} 
                   className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-6 shadow-xl backdrop-blur-md hover:shadow-2xl transition-all duration-300 hover:scale-105"
                 >
-                  <h3 className="font-bold text-xl mb-3 text-white text_center">{project.name}</h3>
+                  <h3 className="font-bold text-xl mb-3 text-white">{project.name}</h3>
                   <p className="text-slate-300 mb-4 text-sm leading-relaxed">{project.description}</p>
                   
-                  <a
-                    href={project.documentURL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block mb-4 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium shadow-md hover:shadow-lg transform transition duration-200 hover:scale-105"
-                  >
-                    View Document
-                  </a>
+                  <div className="mb-4">
+                    <p className="text-xs text-slate-400 mb-1">Status:</p>
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400 capitalize">
+                      {project.status}
+                    </span>
+                  </div>
 
                   <div className="flex items-start gap-2 pt-3 border-t border-slate-700/50">
                     <MdPeople className="w-5 h-5 text-slate-400 mt-0.5" />
                     <div>
-                      <p className="text-xs text-slate-400 mb-1">Assigned to:</p>
+                      <p className="text-xs text-slate-400 mb-1">Team Members:</p>
                       <p className="text-sm text-slate-200">
-                        {project.assignedTo.length > 0 ? project.assignedTo.join(', ') : 'No one assigned'}
+                        {project.members?.length > 0 ? `${project.members.length} members` : 'No members assigned'}
                       </p>
                     </div>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-slate-400">
+                    <p>Start: {new Date(project.startDate).toLocaleDateString()}</p>
+                    <p>End: {new Date(project.endDate).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))}
             </div>
+            
+            {!loading && projects.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-slate-400 text-lg">No projects assigned to you yet.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

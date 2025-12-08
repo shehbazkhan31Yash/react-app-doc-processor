@@ -1,18 +1,42 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../api/axios'; 
-
-const API_URL = '/api/projects'; 
+import { projectService, userService } from '../../api/services';
 
 // Fetch all projects (admin only)
 export const fetchProjects = createAsyncThunk(
   'projects/fetchProjects',
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get(`${API_URL}/all`);
-      return response.data.data || response.data; // Adjust for your API response wrapper
+      const response = await projectService.getAllProjects(params);
+      return response.data || response;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch projects');
+    }
+  }
+);
+
+// Fetch manager projects (manager only)
+export const fetchManagerProjects = createAsyncThunk(
+  'projects/fetchManagerProjects',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await projectService.getManagerProjects(params);
+      return response.data || response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch manager projects');
+    }
+  }
+);
+
+// Fetch user projects (user only)
+export const fetchUserProjects = createAsyncThunk(
+  'projects/fetchUserProjects',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await projectService.getUserProjects(params);
+      return response.data || response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch user projects');
     }
   }
 );
@@ -22,15 +46,36 @@ export const createProject = createAsyncThunk(
   'projects/createProject',
   async (projectData, { rejectWithValue }) => {
     try {
-      const csrfResponse = await api.get('/csrf-token');
-      const csrfToken = csrfResponse.data.csrfToken;
-
-      const response = await api.post(API_URL, projectData, {
-        headers: { 'csrf-token': csrfToken }
-      });
-      return response.data;
+      const response = await projectService.createProject(projectData);
+      return response;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create project');
+    }
+  }
+);
+
+// Update project
+export const updateProject = createAsyncThunk(
+  'projects/updateProject',
+  async ({ id, projectData }, { rejectWithValue }) => {
+    try {
+      const response = await projectService.updateProject(id, projectData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update project');
+    }
+  }
+);
+
+// Delete project
+export const deleteProject = createAsyncThunk(
+  'projects/deleteProject',
+  async (id, { rejectWithValue }) => {
+    try {
+      await projectService.deleteProject(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete project');
     }
   }
 );
@@ -40,15 +85,8 @@ export const assignProjectToUser = createAsyncThunk(
   'projects/assignProjectToUser',
   async ({ projectId, userId }, { rejectWithValue }) => {
     try {
-      const csrfResponse = await api.get('/csrf-token');
-      const csrfToken = csrfResponse.data.csrfToken;
-
-      const response = await api.post(
-        `${API_URL}/${projectId}/assign-user`,
-        { userId },
-        { headers: { 'csrf-token': csrfToken } }
-      );
-      return response.data.project || response.data; // Adjust based on your backend response structure
+      const response = await projectService.assignUserToProject(projectId, userId);
+      return response.project || response;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to assign project');
     }
@@ -58,10 +96,10 @@ export const assignProjectToUser = createAsyncThunk(
 // Fetch all users (to populate managers and members)
 export const fetchUsers = createAsyncThunk(
   'projects/fetchUsers',
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/api/users'); // Full API endpoint for safety
-      return response.data;
+      const response = await userService.getAllUsers(params);
+      return response.data || response;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch users');
     }
@@ -71,6 +109,12 @@ export const fetchUsers = createAsyncThunk(
 const initialState = {
   projects: [],
   users: [],
+  meta: {
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 1,
+  },
   loading: false,
   error: null,
 };
@@ -98,6 +142,32 @@ const projectsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Fetch Manager Projects
+      .addCase(fetchManagerProjects.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchManagerProjects.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projects = action.payload;
+      })
+      .addCase(fetchManagerProjects.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Fetch User Projects
+      .addCase(fetchUserProjects.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserProjects.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projects = action.payload;
+      })
+      .addCase(fetchUserProjects.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // Create Project
       .addCase(createProject.pending, (state) => {
         state.loading = true;
@@ -108,6 +178,36 @@ const projectsSlice = createSlice({
         state.projects.push(action.payload);
       })
       .addCase(createProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Update Project
+      .addCase(updateProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProject.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedProject = action.payload;
+        const idx = state.projects.findIndex(p => p._id === updatedProject._id);
+        if (idx !== -1) {
+          state.projects[idx] = updatedProject;
+        }
+      })
+      .addCase(updateProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Delete Project
+      .addCase(deleteProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteProject.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projects = state.projects.filter(p => p._id !== action.payload);
+      })
+      .addCase(deleteProject.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
